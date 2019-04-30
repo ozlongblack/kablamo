@@ -1,44 +1,87 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Kihwan Cho (http://www.kihwancho.com)
 
-## Available Scripts
+## Creating a project
 
-In the project directory, you can run:
+Create React App and Typescript are used for this test.
 
-### `npm start`
+```
+npx create-react-app kablamo --typescript
+```
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Installation
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+```
+yarn install
+yarn start
+```
 
-### `npm test`
+## Trouble shooting
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+I made 3 versions of implementation depending on approaches.
 
-### `npm run build`
+### Version 1 (StopwatchV1)
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- The main issue was all of the handlers used in `onClick` function didn't recognize `this` context. Basically, we can bind `this` context to handler functions using `bind` as the example below.
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+```
+onClick={this.handleStartClick.bind(this)}
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- In `onDelete` function, we can also pass `index` value after `this` context in order to remove a clicked item.
 
-### `npm run eject`
+```
+onDelete={this.handleDeleteClick.bind(this, i)}
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+- In `handleDeleteClick` function, because `SampleArray.splice(index, 1)` will return an removed value and `splice` function will mutate an array, we can make a duplication of `this.laps` as the codes below. Otherwise, lodash `remove` function would be handy to maniplate array values.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
+const updated = [...this.laps];
+updated.splice(index, 1);
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+this.laps = updated;
+this.forceUpdate();
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- Also, we need to use `this.forceUpdate();` in order to re-render the component because `this.laps` is a static prop.
 
-## Learn More
+- The default value of `lastClearedIncrementer` should be `undefined` instead of `null` in order to render appropriate buttons when we set `not 0` into `initialSeconds`. Otherwise, it will render `stop` button at first render even though `setInterval` is stopped because `this.incrementer === lastClearedIncrementer` condition is `false`. (undefined === null // false)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+<StopwatchV1 initialSeconds={1} />
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- In `handleStartClick` function, we can add `if (this.incrementer === this.state.lastClearedIncrementer)` condition in order to prevent double-click or multiple-click. Otherwise, it will generate unreachable `setInterval` functions.
+
+### Version 2 (StopwatchV2)
+
+- We can try to avoid using `forceUpdate()` since it is not a natural behavior in React. Even React dev team doesn't recommend using it.
+
+> Normally you should try to avoid all uses of forceUpdate() and only read from this.props and this.state in render().
+
+- In order to avoid `forceUpdate()`, we can set `laps` as a state. Then it will re-render the component when `this.state.laps` changes.
+
+```
+this.state = {
+  ...
+  laps: []
+};
+
+...
+
+this.setState({
+  laps: updated
+});
+```
+
+### Version 3 (StopwatchV3)
+
+- In order to build solid applications, we need to find out how to improve `reusability`, `readability`, `maintainability` and `testability`. Since React already supports `HOC` and `Function component`, we can follow Functional Programming principles avoiding `shared states` and `state mutations`. Then our applications will be easy to reuse and easy to test.
+
+**StopwatchV3.view**
+
+- The view component only takes control of rendering and all the dynamic states and handlers will come from `enhancer`. In this case, we can make a test easily because we can inject different context anytime and anywhere.
+
+**StopwatchV3.enhancer**
+
+- This function will take a view component and return it with all the states and handlers. Using React Hooks APIs such as useState, useRef, we can manage shared states and mutable values in this function.
