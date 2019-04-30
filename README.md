@@ -33,7 +33,7 @@ onClick={this.handleStartClick.bind(this)}
 onDelete={this.handleDeleteClick.bind(this, i)}
 ```
 
-- In `handleDeleteClick` function, because `SampleArray.splice(index, 1)` will return an removed value and `splice` function will mutate an array, we can make a duplication of `this.laps` as the codes below. Otherwise, lodash `remove` function would be handy to maniplate array values.
+- In `handleDeleteClick` function, because `SampleArray.splice(index, 1)` will return an removed value and `splice` function will mutate an array, we can make a duplication of `this.laps` as the codes below. Otherwise, lodash `remove` function would be handy to manipulate array values.
 
 ```
 const updated = [...this.laps];
